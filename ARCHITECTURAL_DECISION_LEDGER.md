@@ -323,3 +323,25 @@ The completed MCP Details baseline remains unchanged.
 The new project can begin independently.
 
 Any future proposal to change the upstream integration contract must be justified by an observed limitation rather than architectural speculation.
+
+## AD-009 - Pin the Upstream MCP Details Runtime Dependency to the Verified Git Commit
+
+**Status:** Accepted  
+**Part:** Part 1B  
+**Date:** 2026-10-13
+
+### Decision
+
+The MCP Details Readable Report Project will declare MCP Details as a runtime dependency using a Git direct reference pinned to commit `873d0d25f59af2e606ed57781648c8ee4380359b`, corresponding to the verified `part-2-complete` upstream baseline.
+
+The project will not use the developer's local MCP Details filesystem path, an editable upstream installation, the moving upstream `main` branch, or the package version `0.0.0` as the identity of the required upstream baseline.
+
+The Git commit pin may later be replaced by a conventional versioned package dependency if MCP Details adopts an appropriate package distribution and versioning strategy.
+
+### Rationale
+
+The Readable Report Project depends on the structured `ApplicationInspectionResult` boundary established by the completed MCP Details project. The upstream package currently reports version `0.0.0`, which does not uniquely identify the reviewed source state.
+
+Pinning the dependency to the exact verified Git commit makes the required upstream implementation explicit and reproducible while keeping the downstream project independent of the developer's local filesystem layout.
+
+The human-readable tag `part-2-complete` documents the meaning of the baseline, while the immutable commit identifier is used for dependency resolution.

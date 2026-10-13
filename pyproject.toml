@@ -7,6 +7,9 @@ name = "mcp-details-readable-report"
 version = "0.0.0"
 description = "Human-readable reporting for structured MCP Details inspection results."
 requires-python = ">=3.12"
+dependencies = [
+    "mcp-details @ git+https://github.com/gcarterIT/mcp_details_learning_project.git@873d0d25f59af2e606ed57781648c8ee4380359b",
+]
 
 [project.optional-dependencies]
 dev = [
