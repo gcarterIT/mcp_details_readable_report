@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 
 class SchemaPresentationStatus(Enum):
@@ -27,3 +28,17 @@ class SchemaPresentation:
 
     status: SchemaPresentationStatus
     parameters: tuple[ParameterPresentation, ...]
+    
+    
+def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
+    """Interpret supported schema evidence for readable presentation."""
+    if schema.get("type") == "object" and schema.get("properties") == {}:
+        return SchemaPresentation(
+            status=SchemaPresentationStatus.RECOGNIZED,
+            parameters=(),
+        )
+
+    return SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )

@@ -4,6 +4,7 @@ from mcp_details_readable_report.schema_presentation import (
     ParameterPresentation,
     SchemaPresentation,
     SchemaPresentationStatus,
+    interpret_schema,
 )
 
 
@@ -42,3 +43,46 @@ def test_schema_presentation_distinguishes_unsupported_schema() -> None:
 
     assert presentation.status is SchemaPresentationStatus.UNSUPPORTED
     assert presentation.parameters == ()
+
+    
+def test_interpret_schema_recognizes_empty_object_parameters() -> None:
+    """An object with empty properties is a recognized zero-parameter schema."""
+    schema = {
+        "type": "object",
+        "properties": {},
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.RECOGNIZED,
+        parameters=(),
+    )
+    
+def test_interpret_schema_marks_unhandled_root_type_as_unsupported() -> None:
+    """An unhandled root schema type must not masquerade as zero parameters."""
+    schema = {
+        "type": "array",
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
+    
+def test_interpret_schema_does_not_mutate_input_schema() -> None:
+    """Schema interpretation must not mutate authoritative input evidence."""
+    schema = {
+        "type": "object",
+        "properties": {},
+    }
+    original_schema = {
+        "type": "object",
+        "properties": {},
+    }
+
+    interpret_schema(schema)
+
+    assert schema == original_schema    

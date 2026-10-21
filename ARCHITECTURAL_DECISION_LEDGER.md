@@ -345,3 +345,84 @@ The Readable Report Project depends on the structured `ApplicationInspectionResu
 Pinning the dependency to the exact verified Git commit makes the required upstream implementation explicit and reproducible while keeping the downstream project independent of the developer's local filesystem layout.
 
 The human-readable tag `part-2-complete` documents the meaning of the baseline, while the immutable commit identifier is used for dependency resolution.
+
+10/17/26
+--------
+
+## AD-010 — Use Selective Presentation Transformation Rather Than a Complete Duplicate Result Model
+
+**Status:** Accepted  
+**Part:** Part 1B  
+**Date:** 2026-10-17
+
+### Context
+
+The MCP Details Readable Report Project consumes
+`ApplicationInspectionResult` from the completed MCP Details project as its
+authoritative structured reporting input.
+
+Review of the upstream result model showed that much of the inspection
+evidence, including target information, server information, category status,
+tool identity, resources, resource templates, and prompts, is already
+structured suitably for direct presentation.
+
+Real-world schema evidence from the MCP Details validation project also showed
+that some evidence requires nontrivial presentation interpretation. Tool input
+schemas include object properties, required membership, primitive types,
+descriptions, defaults, enums, `anyOf`, arrays, nested objects, map-like
+objects, `propertyNames`, and `additionalProperties`.
+
+Rendering these structures readably requires recursive interpretation and
+derived presentation facts. Placing that logic directly inside the HTML
+renderer would mix semantic interpretation with output serialization. Creating
+a complete second DTO hierarchy mirroring MCP Details would unnecessarily
+duplicate upstream structures and introduce synchronization risk.
+
+### Decision
+
+Use a selective presentation-transformation architecture.
+
+`ApplicationInspectionResult` remains the authoritative inspection evidence.
+
+Straightforward upstream evidence may be consumed directly by presentation
+code. Project-owned transformation helpers or presentation structures will be
+introduced only where readable presentation requires meaningful derivation,
+normalization, combination, recursive interpretation, or other nontrivial
+semantic processing.
+
+Tool input and output schema interpretation are the first demonstrated cases
+where a selective presentation structure is justified.
+
+Do not create a complete downstream copy of the MCP Details result hierarchy.
+
+Keep nontrivial semantic interpretation conceptually separate from HTML
+serialization.
+
+Treat the supplied `ApplicationInspectionResult` and everything reachable from
+it as read-only evidence. Derived presentation values belong to the Readable
+Report project and should preferably behave as immutable values where
+practical.
+
+Unsupported or open-ended schema content must remain available through a
+faithful technical fallback rather than being silently discarded, guessed, or
+automatically treated as invalid.
+
+### Consequences
+
+- The Readable Report project avoids duplicating the complete MCP Details DTO
+  hierarchy.
+- HTML rendering does not become the sole owner of schema interpretation and
+  other nontrivial reporting semantics.
+- Selective presentation structures can be shared by future presentation
+  formats when justified.
+- Schema interpretation may be recursive without becoming a complete JSON
+  Schema implementation or validator.
+- Nested schema hierarchy must be preserved.
+- Readable-report generation must not mutate upstream inspection evidence.
+- The existing MCP Details detailed report can continue to consume the same
+  `ApplicationInspectionResult` without being affected by readable-report
+  generation.
+- Unknown or unsupported structures require graceful technical fallback.
+- Additional downstream presentation structures must be justified by concrete
+  reporting needs rather than created merely because corresponding upstream
+  objects exist.
