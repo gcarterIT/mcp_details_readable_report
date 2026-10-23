@@ -72,6 +72,33 @@ def test_interpret_schema_marks_unhandled_root_type_as_unsupported() -> None:
         parameters=(),
     )
     
+def test_interpret_schema_presents_single_required_number_parameter() -> None:
+    """A simple required number property should become a readable parameter."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "width": {
+                "type": "number",
+                "description": "Width of the browser window",
+            },
+        },
+        "required": ["width"],
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.RECOGNIZED,
+        parameters=(
+            ParameterPresentation(
+                name="width",
+                type_name="number",
+                required=True,
+                description="Width of the browser window",
+            ),
+        ),
+    )
+
 def test_interpret_schema_does_not_mutate_input_schema() -> None:
     """Schema interpretation must not mutate authoritative input evidence."""
     schema = {
@@ -85,4 +112,26 @@ def test_interpret_schema_does_not_mutate_input_schema() -> None:
 
     interpret_schema(schema)
 
-    assert schema == original_schema    
+    assert schema == original_schema
+
+def test_interpret_schema_leaves_multiple_properties_unsupported_for_now() -> None:
+    """Multiple properties remain unsupported until their behavior is defined."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "width": {
+                "type": "number",
+            },
+            "height": {
+                "type": "number",
+            },
+        },
+        "required": ["width", "height"],
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
