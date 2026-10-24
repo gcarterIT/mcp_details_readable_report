@@ -135,3 +135,29 @@ def test_interpret_schema_leaves_multiple_properties_unsupported_for_now() -> No
         status=SchemaPresentationStatus.UNSUPPORTED,
         parameters=(),
     )
+
+def test_interpret_schema_presents_single_optional_parameter() -> None:
+    """A property absent from required should be presented as optional."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "timeout": {
+                "type": "number",
+                "description": "Maximum time to wait",
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.RECOGNIZED,
+        parameters=(
+            ParameterPresentation(
+                name="timeout",
+                type_name="number",
+                required=False,
+                description="Maximum time to wait",
+            ),
+        ),
+    )
