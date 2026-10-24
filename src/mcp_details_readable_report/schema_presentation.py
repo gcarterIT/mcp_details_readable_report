@@ -40,24 +40,22 @@ def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
             parameters=(),
         )
 
-    if (
-        schema.get("type") == "object"
-        and isinstance(properties, dict)
-        and len(properties) == 1
-    ):
-        name, property_schema = next(iter(properties.items()))
+    if schema.get("type") == "object" and isinstance(properties, dict):
         required = schema.get("required", [])
+
+        parameters = tuple(
+            ParameterPresentation(
+                name=name,
+                type_name=property_schema.get("type"),
+                required=name in required,
+                description=property_schema.get("description"),
+            )
+            for name, property_schema in properties.items()
+        )
 
         return SchemaPresentation(
             status=SchemaPresentationStatus.RECOGNIZED,
-            parameters=(
-                ParameterPresentation(
-                    name=name,
-                    type_name=property_schema.get("type"),
-                    required=name in required,
-                    description=property_schema.get("description"),
-                ),
-            ),
+            parameters=parameters,
         )
 
     return SchemaPresentation(

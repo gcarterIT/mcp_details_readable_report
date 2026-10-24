@@ -114,27 +114,43 @@ def test_interpret_schema_does_not_mutate_input_schema() -> None:
 
     assert schema == original_schema
 
-def test_interpret_schema_leaves_multiple_properties_unsupported_for_now() -> None:
-    """Multiple properties remain unsupported until their behavior is defined."""
+def test_interpret_schema_presents_multiple_simple_parameters_in_source_order() -> None:
+    """Multiple simple properties should preserve source order and requiredness."""
     schema = {
         "type": "object",
         "properties": {
             "width": {
                 "type": "number",
+                "description": "Width of the browser window",
             },
-            "height": {
+            "timeout": {
                 "type": "number",
+                "description": "Maximum time to wait",
             },
         },
-        "required": ["width", "height"],
+        "required": ["width"],
     }
 
     presentation = interpret_schema(schema)
 
     assert presentation == SchemaPresentation(
-        status=SchemaPresentationStatus.UNSUPPORTED,
-        parameters=(),
+        status=SchemaPresentationStatus.RECOGNIZED,
+        parameters=(
+            ParameterPresentation(
+                name="width",
+                type_name="number",
+                required=True,
+                description="Width of the browser window",
+            ),
+            ParameterPresentation(
+                name="timeout",
+                type_name="number",
+                required=False,
+                description="Maximum time to wait",
+            ),
+        ),
     )
+
 
 def test_interpret_schema_presents_single_optional_parameter() -> None:
     """A property absent from required should be presented as optional."""
