@@ -177,3 +177,20 @@ def test_interpret_schema_presents_single_optional_parameter() -> None:
             ),
         ),
     )
+
+
+def test_interpret_schema_marks_non_mapping_property_schema_as_unsupported() -> None:
+    """An unfamiliar property shape should fall back instead of raising."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "width": "unexpected",
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )

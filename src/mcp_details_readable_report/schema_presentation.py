@@ -41,6 +41,12 @@ def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
         )
 
     if schema.get("type") == "object" and isinstance(properties, dict):
+        if not all(isinstance(property_schema, dict) for property_schema in properties.values()):
+            return SchemaPresentation(
+                status=SchemaPresentationStatus.UNSUPPORTED,
+                parameters=(),
+            )
+
         required = schema.get("required", [])
 
         parameters = tuple(
