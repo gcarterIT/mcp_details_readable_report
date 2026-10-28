@@ -194,3 +194,43 @@ def test_interpret_schema_marks_non_mapping_property_schema_as_unsupported() -> 
         status=SchemaPresentationStatus.UNSUPPORTED,
         parameters=(),
     )
+
+
+def test_interpret_schema_marks_none_required_as_unsupported() -> None:
+    """An unfamiliar required shape should fall back instead of raising."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "width": {
+                "type": "number",
+            },
+        },
+        "required": None,
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
+
+
+def test_interpret_schema_marks_string_required_as_unsupported() -> None:
+    """A string required value should not be interpreted as a name collection."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "width": {
+                "type": "number",
+            },
+        },
+        "required": "width",
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )

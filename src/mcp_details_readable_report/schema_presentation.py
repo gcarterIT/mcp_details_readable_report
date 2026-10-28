@@ -49,6 +49,12 @@ def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
 
         required = schema.get("required", [])
 
+        if not isinstance(required, list):
+            return SchemaPresentation(
+                status=SchemaPresentationStatus.UNSUPPORTED,
+                parameters=(),
+            )
+
         parameters = tuple(
             ParameterPresentation(
                 name=name,
