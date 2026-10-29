@@ -13,13 +13,22 @@ class SchemaPresentationStatus(Enum):
 
 
 @dataclass(frozen=True)
+class DefaultPresentation:
+    """Presentation evidence for an explicitly supplied schema default."""
+
+    value: object
+
+
+@dataclass(frozen=True)
 class ParameterPresentation:
-    """Readable presentation facts for a schema parameter."""
+    """Readable presentation facts for one schema parameter."""
 
     name: str
     type_name: str | None
     required: bool
     description: str | None
+    allowed_values: tuple[object, ...] | None = None
+    default: DefaultPresentation | None = None
 
 
 @dataclass(frozen=True)

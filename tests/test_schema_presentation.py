@@ -1,6 +1,7 @@
 """Tests for schema presentation models."""
 
 from mcp_details_readable_report.schema_presentation import (
+    DefaultPresentation,
     ParameterPresentation,
     SchemaPresentation,
     SchemaPresentationStatus,
@@ -234,3 +235,39 @@ def test_interpret_schema_marks_string_required_as_unsupported() -> None:
         status=SchemaPresentationStatus.UNSUPPORTED,
         parameters=(),
     )
+
+
+def test_default_presentation_can_preserve_explicit_null() -> None:
+    """An explicit null default should remain representable."""
+    default = DefaultPresentation(value=None)
+
+    assert default.value is None
+
+
+def test_parameter_presentation_can_represent_absent_default() -> None:
+    """A parameter should distinguish an absent default."""
+    parameter = ParameterPresentation(
+        name="level",
+        type_name="string",
+        required=False,
+        description="Minimum message level",
+        allowed_values=None,
+        default=None,
+    )
+
+    assert parameter.default is None
+
+
+def test_parameter_presentation_can_preserve_enum_and_default() -> None:
+    """Primitive enum choices and a default should be representable."""
+    parameter = ParameterPresentation(
+        name="level",
+        type_name="string",
+        required=False,
+        description="Minimum message level",
+        allowed_values=("error", "warning", "info"),
+        default=DefaultPresentation(value="info"),
+    )
+
+    assert parameter.allowed_values == ("error", "warning", "info")
+    assert parameter.default == DefaultPresentation(value="info")
