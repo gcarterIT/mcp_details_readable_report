@@ -39,8 +39,8 @@ class SchemaPresentation:
     parameters: tuple[ParameterPresentation, ...]
 
 
-def _is_primitive_enum_value(value: object) -> bool:
-    """Return whether an enum value fits the current primitive presentation boundary."""
+def _is_primitive_presentation_value(value: object) -> bool:
+    """Return whether a value fits the current primitive presentation boundary."""
     return value is None or isinstance(value, (str, int, float, bool))
 
 
@@ -74,10 +74,20 @@ def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
             and (
                 not isinstance(property_schema["enum"], list)
                 or not all(
-                    _is_primitive_enum_value(value)
+                    _is_primitive_presentation_value(value)
                     for value in property_schema["enum"]
                 )
             )
+            for property_schema in properties.values()
+        ):
+            return SchemaPresentation(
+                status=SchemaPresentationStatus.UNSUPPORTED,
+                parameters=(),
+            )
+
+        if any(
+            "default" in property_schema
+            and not _is_primitive_presentation_value(property_schema["default"])
             for property_schema in properties.values()
         ):
             return SchemaPresentation(
@@ -94,6 +104,11 @@ def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
                 allowed_values=(
                     tuple(property_schema["enum"])
                     if isinstance(property_schema.get("enum"), list)
+                    else None
+                ),
+                default=(
+                    DefaultPresentation(value=property_schema["default"])
+                    if "default" in property_schema
                     else None
                 ),
             )

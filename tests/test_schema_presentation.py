@@ -344,3 +344,82 @@ def test_interpret_schema_marks_complex_enum_values_as_unsupported() -> None:
         status=SchemaPresentationStatus.UNSUPPORTED,
         parameters=(),
     )
+
+
+def test_interpret_schema_presents_primitive_default() -> None:
+    """An explicitly supplied primitive default should be preserved."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "level": {
+                "type": "string",
+                "description": "Minimum message level",
+                "default": "info",
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.RECOGNIZED,
+        parameters=(
+            ParameterPresentation(
+                name="level",
+                type_name="string",
+                required=False,
+                description="Minimum message level",
+                allowed_values=None,
+                default=DefaultPresentation(value="info"),
+            ),
+        ),
+    )
+
+
+def test_interpret_schema_preserves_explicit_null_default() -> None:
+    """An explicit null default should remain distinct from an absent default."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "mode": {
+                "type": "string",
+                "default": None,
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.RECOGNIZED,
+        parameters=(
+            ParameterPresentation(
+                name="mode",
+                type_name="string",
+                required=False,
+                description=None,
+                allowed_values=None,
+                default=DefaultPresentation(value=None),
+            ),
+        ),
+    )
+
+
+def test_interpret_schema_marks_complex_default_as_unsupported() -> None:
+    """Complex defaults should use graceful unsupported fallback."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "mode": {
+                "type": "object",
+                "default": {"name": "fast"},
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
