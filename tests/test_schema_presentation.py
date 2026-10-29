@@ -271,3 +271,76 @@ def test_parameter_presentation_can_preserve_enum_and_default() -> None:
 
     assert parameter.allowed_values == ("error", "warning", "info")
     assert parameter.default == DefaultPresentation(value="info")
+
+
+def test_interpret_schema_presents_primitive_string_enum_values() -> None:
+    """Primitive string enum values should become immutable allowed values."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "level": {
+                "type": "string",
+                "description": "Minimum message level",
+                "enum": ["error", "warning", "info", "debug"],
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.RECOGNIZED,
+        parameters=(
+            ParameterPresentation(
+                name="level",
+                type_name="string",
+                required=False,
+                description="Minimum message level",
+                allowed_values=("error", "warning", "info", "debug"),
+                default=None,
+            ),
+        ),
+    )
+
+
+def test_interpret_schema_marks_string_enum_as_unsupported() -> None:
+    """A string enum should not be treated as absent enum evidence."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "level": {
+                "type": "string",
+                "enum": "error",
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
+
+
+def test_interpret_schema_marks_complex_enum_values_as_unsupported() -> None:
+    """Complex enum members should use graceful unsupported fallback."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "mode": {
+                "type": "object",
+                "enum": [
+                    {"name": "fast"},
+                    {"name": "safe"},
+                ],
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )

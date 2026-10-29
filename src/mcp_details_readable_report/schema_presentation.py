@@ -39,6 +39,11 @@ class SchemaPresentation:
     parameters: tuple[ParameterPresentation, ...]
 
 
+def _is_primitive_enum_value(value: object) -> bool:
+    """Return whether an enum value fits the current primitive presentation boundary."""
+    return value is None or isinstance(value, (str, int, float, bool))
+
+
 def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
     """Interpret supported schema evidence for readable presentation."""
     properties = schema.get("properties")
@@ -64,12 +69,33 @@ def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
                 parameters=(),
             )
 
+        if any(
+            "enum" in property_schema
+            and (
+                not isinstance(property_schema["enum"], list)
+                or not all(
+                    _is_primitive_enum_value(value)
+                    for value in property_schema["enum"]
+                )
+            )
+            for property_schema in properties.values()
+        ):
+            return SchemaPresentation(
+                status=SchemaPresentationStatus.UNSUPPORTED,
+                parameters=(),
+            )
+
         parameters = tuple(
             ParameterPresentation(
                 name=name,
                 type_name=property_schema.get("type"),
                 required=name in required,
                 description=property_schema.get("description"),
+                allowed_values=(
+                    tuple(property_schema["enum"])
+                    if isinstance(property_schema.get("enum"), list)
+                    else None
+                ),
             )
             for name, property_schema in properties.items()
         )
