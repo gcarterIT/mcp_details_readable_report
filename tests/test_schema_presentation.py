@@ -423,3 +423,111 @@ def test_interpret_schema_marks_complex_default_as_unsupported() -> None:
         status=SchemaPresentationStatus.UNSUPPORTED,
         parameters=(),
     )
+
+
+def test_interpret_schema_presents_primitive_any_of_types() -> None:
+    """Primitive anyOf alternatives should produce a readable union type."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "value": {
+                "anyOf": [
+                    {"type": "string"},
+                    {"type": "null"},
+                ],
+                "description": "Optional text value",
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.RECOGNIZED,
+        parameters=(
+            ParameterPresentation(
+                name="value",
+                type_name="string | null",
+                required=False,
+                description="Optional text value",
+                allowed_values=None,
+                default=None,
+            ),
+        ),
+    )
+
+
+def test_interpret_schema_marks_unsupported_any_of_as_unsupported() -> None:
+    """Unhandled anyOf alternatives should use graceful unsupported fallback."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "value": {
+                "anyOf": [
+                    {"type": "string"},
+                    {"$ref": "#/$defs/value"},
+                ],
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
+
+
+def test_interpret_schema_marks_direct_type_with_unsupported_any_of_as_unsupported() -> None:
+    """A direct type should not hide unsupported anyOf evidence."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "value": {
+                "type": "string",
+                "anyOf": [
+                    {"$ref": "#/$defs/value"},
+                ],
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
+
+
+def test_interpret_schema_prefers_direct_type_when_supported_any_of_is_also_present() -> None:
+    """A direct type remains the display type when supported anyOf is also present."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "value": {
+                "type": "string",
+                "anyOf": [
+                    {"type": "string"},
+                    {"type": "null"},
+                ],
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.RECOGNIZED,
+        parameters=(
+            ParameterPresentation(
+                name="value",
+                type_name="string",
+                required=False,
+                description=None,
+                allowed_values=None,
+                default=None,
+            ),
+        ),
+    )

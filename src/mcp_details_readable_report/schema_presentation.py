@@ -44,6 +44,39 @@ def _is_primitive_presentation_value(value: object) -> bool:
     return value is None or isinstance(value, (str, int, float, bool))
 
 
+def _is_supported_primitive_any_of(property_schema: dict[str, Any]) -> bool:
+    """Return whether present anyOf evidence fits the primitive presentation boundary."""
+    any_of = property_schema.get("anyOf")
+
+    return (
+        isinstance(any_of, list)
+        and all(
+            isinstance(alternative, dict)
+            and isinstance(alternative.get("type"), str)
+            for alternative in any_of
+        )
+    )
+
+
+def _interpret_type_name(property_schema: dict[str, Any]) -> str | None:
+    """Derive a readable type name from supported property schema evidence."""
+    direct_type = property_schema.get("type")
+
+    if isinstance(direct_type, str):
+        return direct_type
+
+    if _is_supported_primitive_any_of(property_schema):
+        return " | ".join(
+            alternative["type"]
+            for alternative in property_schema["anyOf"]
+        )
+
+    return None
+
+
+
+
+
 def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
     """Interpret supported schema evidence for readable presentation."""
     properties = schema.get("properties")
@@ -86,6 +119,16 @@ def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
             )
 
         if any(
+            "anyOf" in property_schema
+            and not _is_supported_primitive_any_of(property_schema)
+            for property_schema in properties.values()
+        ):
+            return SchemaPresentation(
+                status=SchemaPresentationStatus.UNSUPPORTED,
+                parameters=(),
+            )
+
+        if any(
             "default" in property_schema
             and not _is_primitive_presentation_value(property_schema["default"])
             for property_schema in properties.values()
@@ -98,7 +141,7 @@ def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
         parameters = tuple(
             ParameterPresentation(
                 name=name,
-                type_name=property_schema.get("type"),
+                type_name=_interpret_type_name(property_schema),
                 required=name in required,
                 description=property_schema.get("description"),
                 allowed_values=(
