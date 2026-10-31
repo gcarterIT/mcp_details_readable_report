@@ -44,17 +44,39 @@ def _is_primitive_presentation_value(value: object) -> bool:
     return value is None or isinstance(value, (str, int, float, bool))
 
 
-def _is_supported_primitive_any_of(property_schema: dict[str, Any]) -> bool:
+def _is_supported_primitive_any_of(
+    property_schema: dict[str, Any],
+) -> bool:
     """Return whether present anyOf evidence fits the primitive presentation boundary."""
     any_of = property_schema.get("anyOf")
 
-    return (
-        isinstance(any_of, list)
-        and all(
-            isinstance(alternative, dict)
-            and isinstance(alternative.get("type"), str)
-            for alternative in any_of
+    if not isinstance(any_of, list):
+        return False
+
+    enum_alternative_count = sum(
+        1
+        for alternative in any_of
+        if isinstance(alternative, dict)
+        and "enum" in alternative
+    )
+
+    if enum_alternative_count > 1:
+        return False
+
+    return all(
+        isinstance(alternative, dict)
+        and isinstance(alternative.get("type"), str)
+        and (
+            "enum" not in alternative
+            or (
+                isinstance(alternative["enum"], list)
+                and all(
+                    _is_primitive_presentation_value(value)
+                    for value in alternative["enum"]
+                )
+            )
         )
+        for alternative in any_of
     )
 
 
@@ -74,7 +96,29 @@ def _interpret_type_name(property_schema: dict[str, Any]) -> str | None:
     return None
 
 
+def _interpret_allowed_values(
+    property_schema: dict[str, Any],
+) -> tuple[object, ...] | None:
+    """Derive readable allowed values from supported schema evidence."""
+    direct_enum = property_schema.get("enum")
 
+    if isinstance(direct_enum, list):
+        return tuple(direct_enum)
+
+    any_of = property_schema.get("anyOf")
+
+    if isinstance(any_of, list):
+        enum_alternatives = [
+            alternative["enum"]
+            for alternative in any_of
+            if isinstance(alternative, dict)
+            and isinstance(alternative.get("enum"), list)
+        ]
+
+        if len(enum_alternatives) == 1:
+            return tuple(enum_alternatives[0])
+
+    return None
 
 
 def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
@@ -144,11 +188,7 @@ def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
                 type_name=_interpret_type_name(property_schema),
                 required=name in required,
                 description=property_schema.get("description"),
-                allowed_values=(
-                    tuple(property_schema["enum"])
-                    if isinstance(property_schema.get("enum"), list)
-                    else None
-                ),
+                allowed_values=_interpret_allowed_values(property_schema),
                 default=(
                     DefaultPresentation(value=property_schema["default"])
                     if "default" in property_schema

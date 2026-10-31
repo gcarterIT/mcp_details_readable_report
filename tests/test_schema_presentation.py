@@ -531,3 +531,100 @@ def test_interpret_schema_prefers_direct_type_when_supported_any_of_is_also_pres
             ),
         ),
     )
+
+
+def test_interpret_schema_preserves_primitive_enum_inside_any_of() -> None:
+    """A primitive enum inside supported anyOf should remain visible."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "colorScheme": {
+                "description": "Emulates the prefers-color-scheme media feature",
+                "anyOf": [
+                    {
+                        "type": "string",
+                        "enum": [
+                            "light",
+                            "dark",
+                        ],
+                    },
+                    {
+                        "type": "null",
+                    },
+                ],
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.RECOGNIZED,
+        parameters=(
+            ParameterPresentation(
+                name="colorScheme",
+                type_name="string | null",
+                required=False,
+                description="Emulates the prefers-color-scheme media feature",
+                allowed_values=("light", "dark"),
+                default=None,
+            ),
+        ),
+    )
+
+
+def test_interpret_schema_marks_complex_enum_inside_any_of_as_unsupported() -> None:
+    """Complex enum values inside anyOf should use unsupported fallback."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "value": {
+                "anyOf": [
+                    {
+                        "type": "string",
+                        "enum": [
+                            {"value": "light"},
+                        ],
+                    },
+                    {
+                        "type": "null",
+                    },
+                ],
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
+
+
+def test_interpret_schema_marks_multiple_enum_any_of_alternatives_as_unsupported() -> None:
+    """Multiple enum-bearing anyOf alternatives exceed the current presentation boundary."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "value": {
+                "anyOf": [
+                    {
+                        "type": "string",
+                        "enum": ["a", "b"],
+                    },
+                    {
+                        "type": "integer",
+                        "enum": [1, 2],
+                    },
+                ],
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
