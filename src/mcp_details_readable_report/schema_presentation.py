@@ -80,8 +80,58 @@ def _is_supported_primitive_any_of(
     )
 
 
-def _interpret_type_name(property_schema: dict[str, Any]) -> str | None:
-    """Derive a readable type name from supported property schema evidence."""
+def _interpret_primitive_array_type(
+    property_schema: dict[str, Any],
+) -> str | None:
+    """Derive a readable type for a directly typed primitive array."""
+    if property_schema.get("type") != "array":
+        return None
+
+    items = property_schema.get("items")
+
+    if not isinstance(items, dict):
+        return None
+
+    item_type = items.get("type")
+
+    if item_type not in {"string", "number", "integer", "boolean", "null"}:
+        return None
+
+    return f"array of {item_type}"
+
+
+def _is_supported_primitive_array(
+    property_schema: dict[str, Any],
+) -> bool:
+    """Return whether an array fits the current primitive-array boundary."""
+    if property_schema.get("type") != "array":
+        return False
+
+    items = property_schema.get("items")
+
+    if not isinstance(items, dict):
+        return False
+
+    if "enum" in items:
+        return False
+
+    return items.get("type") in {
+        "string",
+        "number",
+        "integer",
+        "boolean",
+        "null",
+    }
+
+
+def _interpret_type_name(
+    property_schema: dict[str, Any],
+) -> str | None:
+    primitive_array_type = _interpret_primitive_array_type(property_schema)
+
+    if primitive_array_type is not None:
+        return primitive_array_type
+
     direct_type = property_schema.get("type")
 
     if isinstance(direct_type, str):
@@ -171,6 +221,16 @@ def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
                 status=SchemaPresentationStatus.UNSUPPORTED,
                 parameters=(),
             )
+
+        if any(
+               property_schema.get("type") == "array"
+               and not _is_supported_primitive_array(property_schema)
+               for property_schema in properties.values()
+           ):
+               return SchemaPresentation(
+                   status=SchemaPresentationStatus.UNSUPPORTED,
+                   parameters=(),
+               )
 
         if any(
             "default" in property_schema

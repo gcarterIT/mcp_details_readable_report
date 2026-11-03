@@ -628,3 +628,109 @@ def test_interpret_schema_marks_multiple_enum_any_of_alternatives_as_unsupported
         status=SchemaPresentationStatus.UNSUPPORTED,
         parameters=(),
     )
+
+def test_interpret_schema_presents_array_of_primitive_string() -> None:
+    """A simple primitive array should expose its item type."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "paths": {
+                "description": "Absolute paths to files to upload.",
+                "type": "array",
+                "items": {
+                    "type": "string",
+                },
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.RECOGNIZED,
+        parameters=(
+            ParameterPresentation(
+                name="paths",
+                type_name="array of string",
+                required=False,
+                description="Absolute paths to files to upload.",
+                allowed_values=None,
+                default=None,
+            ),
+        ),
+    )
+
+
+def test_interpret_schema_marks_array_of_object_as_unsupported() -> None:
+    """An array of objects exceeds the current flat presentation boundary."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "fields": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                        },
+                    },
+                },
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
+
+
+def test_interpret_schema_marks_array_item_enum_as_unsupported() -> None:
+    """An item-level enum exceeds the current primitive-array boundary."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "modifiers": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "enum": [
+                        "Alt",
+                        "Control",
+                        "ControlOrMeta",
+                        "Meta",
+                        "Shift",
+                    ],
+                },
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
+
+
+def test_interpret_schema_marks_array_without_items_as_unsupported() -> None:
+    """An array without item evidence exceeds the current presentation boundary."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "values": {
+                "type": "array",
+            },
+        },
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
