@@ -171,6 +171,19 @@ def _interpret_allowed_values(
     return None
 
 
+def _has_unsupported_object_constraints(
+    property_schema: dict,
+) -> bool:
+    """Detect object-valued parameters with unrepresented mapping constraints."""
+    return (
+        property_schema.get("type") == "object"
+        and (
+            "propertyNames" in property_schema
+            or "additionalProperties" in property_schema
+        )
+    )
+
+
 def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
     """Interpret supported schema evidence for readable presentation."""
     properties = schema.get("properties")
@@ -231,6 +244,15 @@ def interpret_schema(schema: dict[str, Any]) -> SchemaPresentation:
                    status=SchemaPresentationStatus.UNSUPPORTED,
                    parameters=(),
                )
+
+        if any(
+            _has_unsupported_object_constraints(property_schema)
+            for property_schema in properties.values()
+        ):
+            return SchemaPresentation(
+                status=SchemaPresentationStatus.UNSUPPORTED,
+                parameters=(),
+            )
 
         if any(
             "default" in property_schema

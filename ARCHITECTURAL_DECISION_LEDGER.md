@@ -426,3 +426,64 @@ automatically treated as invalid.
 - Additional downstream presentation structures must be justified by concrete
   reporting needs rather than created merely because corresponding upstream
   objects exist.
+
+11/06/26
+--------
+
+## AD-011 — Conservatively Classify Object Mapping Constraints as Unsupported
+
+**Status:** Accepted
+**Part:** Part 1B.5O
+**Date:** 2026-11-06
+
+### Context
+
+Real-world validation of the Microsoft Playwright MCP server identified a map-like object-valued parameter, `data`, in the `browser_drop` tool.
+
+The parameter schema uses `propertyNames` and `additionalProperties` to describe a mapping of MIME-type keys to string values.
+
+The existing schema interpreter recognized the parameter as an ordinary object, but its flat `ParameterPresentation` structure did not preserve the key/value mapping constraints.
+
+This created a risk of presenting incomplete schema information as recognized.
+
+AD-010 requires unsupported schema evidence to remain available through a faithful technical fallback rather than being silently discarded or misrepresented.
+
+### Decision
+
+When an individual object-valued parameter contains either `propertyNames` or `additionalProperties`, `interpret_schema()` returns `SchemaPresentationStatus.UNSUPPORTED` with an empty parameter tuple.
+
+This guard applies to individual parameter schemas, not to the root tool-input schema.
+
+Root-level `additionalProperties: false` remains compatible with otherwise supported tool-input schemas.
+
+Do not introduce recursive object interpretation, map-specific presentation fields, or a complete JSON Schema interpreter as part of this decision.
+
+The unsupported classification applies only to the derived readable schema presentation. The original inspection evidence must remain available for faithful technical fallback in accordance with AD-010.
+
+### Rationale
+
+- Avoid silently losing object mapping constraints.
+- Preserve the existing flat `ParameterPresentation` contract.
+- Maintain a clear distinction between root-level and parameter-level constraints.
+- Keep implementation changes narrow and supported by real-world evidence.
+- Defer complete mapping interpretation until a separate design and testing boundary justifies it.
+
+### Consequences
+
+- Object-valued parameters containing `propertyNames` or `additionalProperties` are classified as unsupported.
+- A single unsupported parameter causes the entire schema presentation to be classified as unsupported.
+- Root-level `additionalProperties: false` does not independently trigger the new guard.
+- Object-valued parameters without these keywords are not rejected by this guard alone.
+- Nested object interpretation remains a separate architectural boundary.
+- Original schema evidence must remain available to the reporting layer for technical fallback.
+- No changes are required to the upstream MCP Details inspection model.
+
+### Verification
+
+- Inspected real-world Playwright MCP `browser_drop.data` schema evidence.
+- Characterized the original recognized-object behavior.
+- Verified the expected RED test before implementation.
+- Added the minimal production guard.
+- Verified independent tests for `propertyNames` and `additionalProperties`.
+- Verified root-level `additionalProperties: false` remains supported.
+- Full regression suite: 38 passed, 0 failed.

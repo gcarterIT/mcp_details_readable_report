@@ -734,3 +734,96 @@ def test_interpret_schema_marks_array_without_items_as_unsupported() -> None:
         status=SchemaPresentationStatus.UNSUPPORTED,
         parameters=(),
     )
+
+
+def test_interpret_schema_marks_map_like_object_as_unsupported() -> None:
+    """Reject a map-like parameter whose key/value constraints are not presented."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "target": {
+                "type": "string",
+                "description": "Target element for the drop",
+            },
+            "data": {
+                "description": "Data to drop, as a map of MIME type to string value",
+                "type": "object",
+                "propertyNames": {"type": "string"},
+                "additionalProperties": {"type": "string"},
+            },
+        },
+        "required": ["target"],
+        "additionalProperties": False,
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
+
+
+def test_interpret_schema_rejects_object_with_property_names_only() -> None:
+    """Reject object key constraints that the flat presentation cannot show."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "data": {
+                "type": "object",
+                "propertyNames": {"type": "string"},
+            }
+        },
+    }
+
+    assert interpret_schema(schema) == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
+
+
+def test_interpret_schema_rejects_object_with_additional_properties_only() -> None:
+    """Reject object value constraints that the flat presentation cannot show."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "data": {
+                "type": "object",
+                "additionalProperties": {"type": "string"},
+            }
+        },
+    }
+
+    assert interpret_schema(schema) == SchemaPresentation(
+        status=SchemaPresentationStatus.UNSUPPORTED,
+        parameters=(),
+    )
+
+
+def test_interpret_schema_preserves_root_additional_properties_false() -> None:
+    """Root-level extra-property restrictions do not invalidate parameters."""
+    schema = {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Name to display",
+            }
+        },
+        "required": ["name"],
+        "additionalProperties": False,
+    }
+
+    presentation = interpret_schema(schema)
+
+    assert presentation == SchemaPresentation(
+        status=SchemaPresentationStatus.RECOGNIZED,
+        parameters=(
+            ParameterPresentation(
+                name="name",
+                type_name="string",
+                required=True,
+                description="Name to display",
+            ),
+        ),
+    )
